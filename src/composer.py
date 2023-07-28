@@ -27,6 +27,8 @@ LED3 = Pin(10, Pin.OUT)
 BUZZER = PWM(Pin(11))
 BUZZER.freq(500)
 
+tick_timer = False
+
 try:
     with open("state", 'r') as f:
         if (int(f.read()) == STATE_POFF):
@@ -82,8 +84,8 @@ class State:
         tones(0)
 
 
-    @micropython.native
-    def tick(self, timer=0):
+
+    def tick(self):
         #wdt.feed()
         print('Tick')
         print(self.state)
@@ -97,19 +99,25 @@ class State:
         elif self.state == STATE_LOWPOWER:
             print('LP')
             tones(1)
+            LED3.on()
+            time = ticks_ms().to_bytes(3, 'big')
+            imu_read = imu.read_hs()
+            pres_read = pres.read_hs()
+            self.log.write_imu(time + imu_read)
+            self.log.write_pres(time + pres_read)
+            LED3.off()
             try:
-                LED3.on()
-                time = ticks_ms().to_bytes(3, 'big')
-                imu_read = imu.read_hs()
-                pres_read = pres.read_hs()
-                self.log.write_imu(time + imu_read)
-                self.log.write_pres(time + pres_read)
-                LED3.off()
-
-                nrf.send(self.state+time+imu_read+pres_read)
-                commands = nrf.wait_recv()
-                if commands[0] == None:
-                    raise OSError("Failed to revieve reply")
+                nrf.send(bytes([self.state])+time+imu_read+pres_read)
+                self.recvfail = 0
+            except:
+                self.recvfail += 1
+                print("RECV FAIL")
+            commands = nrf.wait_recv()
+            print(commands)
+            if commands[0] == None:
+                tones(3)
+                print("Failed to revieve reply")
+            else:
                 self.recvfail = 0
                 instructions = set()
                 for command in commands:
@@ -121,10 +129,13 @@ class State:
                     nrf.send(bytes(1))
                 elif COM_POFF in instructions:
                     self.setstate_poff()
+#             except:
+#                 print("DECODE FAIL")
+#                 pass
                     
-            except:
-                self.recvfail += 1
-                print("RECV FAIL")
+            #except:
+            #   self.recvfail += 1
+            #    print("RECV FAIL")
 
             if self.recvfail >= 30:
                 self.setstate_launch()
@@ -151,7 +162,7 @@ class State:
             f.write(str(STATE_LOWPOWER))
         imu.set_refresh(26)
         pres.set_refresh(20)
-        self.timer.init(freq=1, mode=Timer.PERIODIC, callback=self.tick)
+        self.timer.init(period=2000, mode=Timer.PERIODIC, callback=timer_callback)
 
     def setstate_launch(self):
         LED1.off()
@@ -163,7 +174,7 @@ class State:
         tones(2)
         imu.set_refresh(833)
         pres.set_refresh(200)
-        self.timer.init(freq=400, mode=Timer.PERIODIC, callback=self.tick)
+        self.timer.init(freq=400, mode=Timer.PERIODIC, callback=timer_callback)
 
     def setstate_landed(self):
         LED1.off()
@@ -174,7 +185,7 @@ class State:
             f.write(str(STATE_LANDED))
         imu.set_refresh(26)
         pres.set_refresh(20)
-        self.timer.init(freq=1, mode=Timer.PERIODIC, callback=self.tick)
+        self.timer.init(period=2000, mode=Timer.PERIODIC, callback=timer_callback)
 
     def setstate_poff(self):
         LED1.off()
@@ -207,6 +218,11 @@ def tones(tone):
         BUZZER.duty_u16(10000)
         sleep_ms(2000)
         BUZZER.duty_u16(0)
+    if tone == 3:
+        BUZZER.freq(1500)
+        BUZZER.duty_u16(10000)
+        sleep_ms(5)
+        BUZZER.duty_u16(0)
 
 @micropython.viper
 def run_launch(state, last: int):
@@ -223,9 +239,18 @@ def run_launch(state, last: int):
         except:
             pass
     LED3.off()
-
-state = State()
-while True:
-    sleep_ms(100)
     
+def timer_callback(timer):
+    global tick_timer
+    tick_timer = True
+    
+if __name__ == "__main__":
+    state = State()
+    while True:
+        if tick_timer:
+            state.tick()
+            tick_timer = False
+    
+
+
 

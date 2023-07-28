@@ -5,9 +5,12 @@ from time import sleep_ms, ticks_ms
 
 class Radio:
     # Function is either Rocket (0) or Reciever (1)
-    def __init__(self, function, spi=0, sck=6, mosi=7, miso=4, cs=3, ce=5):
-        self.nrf = NRF24L01(spi=SPI(spi, sck=Pin(sck), mosi=Pin(mosi), miso=Pin(miso)), cs=Pin(cs), ce=Pin(ce), channel=100, payload_size=12)
+    def __init__(self, function, spi=0, sck=6, mosi=7, miso=4, cs=3, che=5):
+        csn = Pin(cs, mode=Pin.OUT, value=1)
+        ce = Pin(che, mode=Pin.OUT, value=0)
+        self.nrf = NRF24L01(spi=SPI(spi, sck=Pin(sck), mosi=Pin(mosi), miso=Pin(miso)), cs=csn, ce=ce, channel=60, payload_size=21)
         self.pipes = (b"\xe1\xf0\xf0\xf0\xf0", b"\xd2\xf0\xf0\xf0\xf0")
+        
         if function == 0:
             self.nrf.open_tx_pipe(self.pipes[0])
             self.nrf.open_rx_pipe(1, self.pipes[1])
@@ -20,11 +23,8 @@ class Radio:
     def send(self, data, mode = 0):
         # Prepares and sends packet
         self.stop_listening()
-        try:
-            self.nrf.send(data)
-            self.lasttrans = ticks_ms()
-        except OSError:
-            raise OSError("Failed to send data")
+        self.nrf.send(data)
+        self.lasttrans = ticks_ms()
         
         # The mode gives the current operation, if zero will start listening again
         if mode == 1:
@@ -59,3 +59,5 @@ class Radio:
 
     def start_listening(self):  
         self.nrf.start_listening()
+
+

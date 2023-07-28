@@ -12,7 +12,6 @@ SETUP_RETR = const(0x04)
 RF_CH = const(0x05)
 RF_SETUP = const(0x06)
 STATUS = const(0x07)
-RECV_PWR = const(0x09)
 RX_ADDR_P0 = const(0x0A)
 TX_ADDR = const(0x10)
 RX_PW_P0 = const(0x11)
@@ -81,15 +80,15 @@ class NRF24L01:
         # disable dynamic payloads
         self.reg_write(DYNPD, 0)
 
-        # auto retransmit delay: 500us
-        # auto retransmit count: 3
-        self.reg_write(SETUP_RETR, (2 << 4) | 3)
+        # auto retransmit delay: 1750us
+        # auto retransmit count: 8
+        self.reg_write(SETUP_RETR, (6 << 4) | 8)
 
         # set rf power and speed
         self.set_power_speed(POWER_3, SPEED_250K)  # Best for point to point links
 
         # init CRC
-        self.set_crc(1)
+        self.set_crc(2)
 
         # clear status flags
         self.reg_write(STATUS, RX_DR | TX_DS | MAX_RT)
@@ -243,8 +242,8 @@ class NRF24L01:
         self.ce(0)
 
     # returns None if send still in progress, 1 for success, 2 for fail
-    def send_done(self):
-        if not (self.reg_read(STATUS) & (TX_DS | MAX_RT)):
+    def send_done(self, arg=True):
+        if not (self.reg_read(STATUS) & (TX_DS | MAX_RT)) and arg:
             return None  # tx not finished
 
         # either finished or failed: get and clear status flags, power down
