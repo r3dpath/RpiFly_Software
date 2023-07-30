@@ -21,9 +21,9 @@ LED3 = Pin(10, Pin.OUT)
 BUZZER = PWM(Pin(11))
 BUZZER.freq(500)
 
-LAUNCH_DELAY = 30000
-RECORD_TIME = 30000
-LANDED_DELAY = 30000
+LAUNCH_DELAY = const(8*60000)
+RECORD_TIME = const(10*60000)
+LANDED_DELAY = const(1*60000)
 INIT_TIME = ticks_ms()
 
 tick_timer = False
@@ -222,7 +222,3 @@ def run():
     
 if __name__ == "__main__":
     run()
-    
-
-
-

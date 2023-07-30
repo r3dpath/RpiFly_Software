@@ -9,10 +9,11 @@ def decode_pres(file):
     print(start_pressure)
     with open(file+".out", 'a+') as f:
         for i in data_points:
-            bin = binascii.a2b_base64(i)
-            time = int(struct.unpack(">i", bytes([0, bin[0], bin[1], bin[2]]))) / 1000
-            pressure = struct.unpack(">i", bytes([0, bin[5], bin[4], bin[3]]))
-            temp = int(struct.unpack(">h", bytes([bin[7], bin[6]])))/100
-            f.write(f"({time}, {pressure}, {temp})")
+            if len(i) > 2:
+                bin = binascii.a2b_base64(i)
+                time = int(struct.unpack(">i", bytes([0, bin[0], bin[1], bin[2]]))[0]) / 1000
+                pressure = struct.unpack(">i", bytes([0, bin[5], bin[4], bin[3]]))[0]
+                temp = int(struct.unpack(">h", bytes([bin[7], bin[6]]))[0])/100
+                f.write(f"{time}, {pressure}, {temp}\n")
       
 decode_pres("log_pres_wills")
