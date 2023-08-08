@@ -18,5 +18,26 @@ def decode_pres(file):
                     f.write(f"{time}, {pressure}, {temp}\n")
                 except:
                     print(f"Error on line, string {i}")
+
+def decode_imu(file):
+    with open(file, 'r') as f:
+        data_points = f.readlines()
+    with open(file+".out_imu", 'a+') as f:
+        for i in data_points:
+            if len(i) > 2:
+                try:
+                    bin = binascii.a2b_base64(i)
+                    time = int(struct.unpack(">i", bytes([0, bin[0], bin[1], bin[2]]))[0]) / 1000
+                    gx = int(struct.unpack(">h", bytes([bin[4], bin[3]]))[0]) * 17.5
+                    gy = int(struct.unpack(">h", bytes([bin[6], bin[5]]))[0]) * 17.5
+                    gz = int(struct.unpack(">h", bytes([bin[8], bin[7]]))[0]) * 17.5
+                    ax = int(struct.unpack(">h", bytes([bin[10], bin[9]]))[0]) * 0.488
+                    ay = int(struct.unpack(">h", bytes([bin[12], bin[11]]))[0]) * 0.488
+                    az = int(struct.unpack(">h", bytes([bin[14], bin[13]]))[0]) * 0.488
+
+                    f.write(f"{time}, {gx}, {gy}, {gz}, {ax}, {ay}, {az}\n")
+                    #print(f"{time}, {gx}, {gy}, {gz}, {ax}, {ay}, {az}")
+                except:
+                    print(f"Error on line, string {i}")
       
-decode_pres("pres_cone")
+decode_imu("imu_cone")

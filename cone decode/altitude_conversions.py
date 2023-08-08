@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 
 
-with open("../data/log_pres_wills.out", "r") as f:
+with open("pres_cone_crop.out", "r") as f:
     lines = f.readlines()
 
 
@@ -30,5 +30,8 @@ for line in lines:
 
 print(max(alts))
 plt.plot(ts, alts)
+plt.title("Altitude Wills Launch")
+plt.ylabel("Height(m)")
+plt.xlabel("Time (s)")
 plt.grid()
 plt.show()
